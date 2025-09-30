@@ -117,11 +117,45 @@ const Products = () => {
   const getDescription = (product) => i18n.language === 'uk' ? product.description_uk : product.description_ru
   const getCategoryLabel = (category) => i18n.language === 'uk' ? category.label_uk : category.label_ru
 
-  const addToCart = (product) => {
-    console.log('Added to cart:', product)
-    alert(`${getName(product)} додано до кошика!`)
+const addToCart = (product) => {
+  const savedCart = localStorage.getItem('cosmeticlab_cart')
+  let cart = savedCart ? JSON.parse(savedCart) : []
+  
+  const existingItem = cart.find(item => item.id === product.id)
+  
+  if (existingItem) {
+    cart = cart.map(item => 
+      item.id === product.id 
+        ? { ...item, quantity: item.quantity + 1 }
+        : item
+    )
+  } else {
+    cart.push({
+      id: product.id,
+      name_uk: product.name_uk,
+      name_ru: product.name_ru,
+      price: product.price,
+      quantity: 1,
+      volume: product.volume,
+      image: '⚗️'
+    })
   }
+  
+  localStorage.setItem('cosmeticlab_cart', JSON.stringify(cart))
+  alert(`${getName(product)} додано до кошика!`)
+}
 
+<button 
+  onClick={() => addToCart(product)}
+  className="btn btn-primary"
+  style={{
+    padding: '12px 24px',
+    fontSize: '15px',
+    fontWeight: '600'
+  }}
+>
+  🛒 {t('add_to_cart')}
+</button>
   if (loading) {
     return (
       <div className="main-content" style={{ padding: '80px 0', textAlign: 'center' }}>

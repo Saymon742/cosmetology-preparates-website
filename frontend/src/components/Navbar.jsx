@@ -1,48 +1,74 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 const Navbar = () => {
   const { t, i18n } = useTranslation()
+  const location = useLocation()
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng)
   }
 
+  const isActive = (path) => location.pathname === path
+
   return (
-    <nav style={{
-      backgroundColor: '#2c3e50',
-      padding: '1rem 0',
-      color: 'white'
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '1.5rem', fontWeight: 'bold' }}>
-            CosmeticPreparations
-          </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <Link to="/" style={{ color: 'white', textDecoration: 'none', padding: '10px' }}>{t('welcome')}</Link>
-            <Link to="/products" style={{ color: 'white', textDecoration: 'none', padding: '10px' }}>{t('products')}</Link>
-            <Link to="/contact" style={{ color: 'white', textDecoration: 'none', padding: '10px' }}>{t('contact')}</Link>
-            <Link to="/login" style={{ color: 'white', textDecoration: 'none', padding: '10px' }}>{t('login')}</Link>
-            <Link to="/register" style={{ color: 'white', textDecoration: 'none', padding: '10px' }}>{t('register')}</Link>
-            <button 
-              onClick={() => changeLanguage(i18n.language === 'uk' ? 'en' : 'uk')}
-              style={{
-                background: 'none',
-                border: '1px solid white',
-                color: 'white',
-                padding: '5px 10px',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
-            >
-              {i18n.language === 'uk' ? 'EN' : 'UK'}
-            </button>
+    <header className="header">
+      <div className="header-container">
+        <Link to="/" className="logo">
+          <div className="logo-icon">
+            <span>⚗️</span>
           </div>
-        </div>
+          <div className="logo-text">
+            <div>CosmeticLab</div>
+            <div className="logo-subtitle">PROFESSIONAL SOLUTIONS</div>
+          </div>
+        </Link>
+        
+        <nav className="nav-menu">
+          <Link 
+            to="/products" 
+            className={`nav-link ${isActive('/products') ? 'active' : ''}`}
+          >
+            🧪 {t('products')}
+          </Link>
+          <Link 
+            to="/contact" 
+            className={`nav-link ${isActive('/contact') ? 'active' : ''}`}
+          >
+            📞 {t('contact')}
+          </Link>
+          <Link 
+            to="/cart" 
+            className={`nav-link ${isActive('/cart') ? 'active' : ''}`}
+          >
+            🛒 Кошик
+          </Link>
+          
+          <div className="nav-divider"></div>
+          
+          <Link 
+            to="/login" 
+            className={`nav-link ${isActive('/login') ? 'active' : ''}`}
+          >
+            🔐 {t('login')}
+          </Link>
+          <Link 
+            to="/register" 
+            className={`nav-link ${isActive('/register') ? 'active' : ''}`}
+          >
+            📝 {t('register')}
+          </Link>
+          
+          <button 
+            onClick={() => changeLanguage(i18n.language === 'uk' ? 'ru' : 'uk')}
+            className="language-switcher"
+          >
+            {i18n.language === 'uk' ? 'RU' : 'UA'}
+          </button>
+        </nav>
       </div>
-    </nav>
+    </header>
   )
 }
 

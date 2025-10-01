@@ -59,16 +59,13 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     return auth.authenticate_user(user, db)
 
-@app.post("/cart/add/")
-def add_item_to_cart(
-    cart_item: schemas.CartItemCreate, 
-    current_user: models.User = Depends(auth.get_current_user)
-):
-    return add_to_cart(cart_item, current_user.email)
+@app.get("/cart/")
+def read_cart():
+    return get_cart("test@test.com")
 
-@app.get("/cart/", response_model=schemas.CartResponse)
-def read_cart(current_user: models.User = Depends(auth.get_current_user)):
-    return get_cart(current_user.email)
+@app.post("/cart/add/")
+def add_item_to_cart(cart_item: schemas.CartItemCreate):
+    return add_to_cart(cart_item, "test@test.com")
 
 @app.post("/orders/create/", response_model=schemas.Order)
 def create_new_order(

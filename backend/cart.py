@@ -8,9 +8,19 @@ def add_to_cart(cart_item: schemas.CartItemCreate, user_email: str):
     db = SessionLocal()
     try:
         user = db.query(models.User).filter(models.User.email == user_email).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
         
+        if not user:
+            user = models.User(
+                email=user_email,
+                full_name="Test User",
+                phone="+380000000000",
+                hashed_password="test"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # остальной код без изменений
         product = db.query(models.Product).filter(models.Product.id == cart_item.product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")

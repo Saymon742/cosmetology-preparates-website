@@ -84,6 +84,4 @@ class Product(ProductsBase):
     volume = Column(String)
     concentration = Column(String)
     in_stock = Column(Boolean, default=True)
-    stock_quantity = Column(Integer, default=100)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

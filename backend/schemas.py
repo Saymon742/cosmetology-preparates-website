@@ -33,8 +33,16 @@ class ProductBase(BaseModel):
     concentration: str
     image_url: Optional[str] = None
 
-class ProductCreate(ProductBase):
-    pass
+class ProductCreate(BaseModel):
+    name_uk: str
+    name_ru: str
+    description_uk: str
+    description_ru: str
+    price: float
+    category: str
+    volume: str
+    concentration: str
+    image_url: Optional[str] = None
 
 class Product(ProductBase):
     id: int

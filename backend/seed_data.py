@@ -1,17 +1,15 @@
-from products_db import ProductsSessionLocal
+from database import SessionLocal, engine
+from products_db import ProductsSessionLocal, products_engine
 import models
 
 def seed_products():
-    db = ProductsSessionLocal()
+    # Создаем таблицы для основной базы
+    models.Base.metadata.create_all(bind=engine)
     
-    try:
-        models.ProductsBase.metadata.create_all(bind=db.bind)
-        print("✅ Products database tables created successfully!")
-        
-    except Exception as e:
-        print(f"Error creating products tables: {e}")
-    finally:
-        db.close()
+    # Создаем таблицы для базы продуктов
+    models.ProductsBase.metadata.create_all(bind=products_engine)
+    
+    print("✅ Все базы данных инициализированы!")
 
 if __name__ == "__main__":
     seed_products()

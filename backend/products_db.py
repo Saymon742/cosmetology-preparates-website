@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-PRODUCTS_DATABASE_URL = "sqlite:///db/products.db"
+PRODUCTS_DATABASE_URL = "sqlite:///./db/products.db"
 
 products_engine = create_engine(
     PRODUCTS_DATABASE_URL, connect_args={"check_same_thread": False}

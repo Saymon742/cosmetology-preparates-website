@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -9,15 +8,15 @@ from products_db import products_engine, get_products_db
 import models
 import schemas
 import auth
-import seed_data
 from products import get_products, get_product, create_product, get_products_by_category
 from orders import add_to_cart, get_cart, create_order, get_user_orders
 from contacts import create_contact
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    seed_data.seed_products()
-    print("✅ Базы данных инициализированы и заполнены тестовыми данными!")
+    models.Base.metadata.create_all(bind=engine)
+    models.ProductsBase.metadata.create_all(bind=products_engine)
+    print("✅ Базы данных инициализированы!")
     yield
 
 app = FastAPI(
@@ -99,3 +98,12 @@ def create_product_endpoint(
     db: Session = Depends(get_products_db)
 ):
     return create_product(db, product)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Создаем таблицы для основной базы
+    models.Base.metadata.create_all(bind=engine)
+    # Создаем таблицы для базы продуктов  
+    models.ProductsBase.metadata.create_all(bind=products_engine)
+    print("✅ Базы данных инициализированы!")
+    yield

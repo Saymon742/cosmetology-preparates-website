@@ -20,7 +20,6 @@ def add_to_cart(cart_item: schemas.CartItemCreate, user_email: str):
             db.commit()
             db.refresh(user)
         
-        # остальной код без изменений
         product = db.query(models.Product).filter(models.Product.id == cart_item.product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")

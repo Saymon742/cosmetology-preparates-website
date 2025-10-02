@@ -7,9 +7,9 @@ from database import SessionLocal, engine, get_db
 from products_db import products_engine, get_products_db
 import models
 import schemas
-import auth
 from products import get_products, get_product, create_product, get_products_by_category
 from orders import add_to_cart, get_cart, create_order, get_user_orders
+import auth
 from contacts import create_contact
 
 @asynccontextmanager
@@ -63,8 +63,11 @@ def read_cart():
     return get_cart("test@test.com")
 
 @app.post("/cart/add/")
-def add_item_to_cart(cart_item: schemas.CartItemCreate):
-    return add_to_cart(cart_item, "test@test.com")
+def add_item_to_cart(
+    cart_item: schemas.CartItemCreate,
+    current_user: models.User = Depends(get_current_user)
+):
+    return add_to_cart(cart_item, current_user.email)
 
 @app.post("/orders/create/", response_model=schemas.Order)
 def create_new_order(

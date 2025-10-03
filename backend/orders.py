@@ -3,75 +3,50 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 import models
 import schemas
+from datetime import datetime
 
-def add_to_cart(cart_item: schemas.CartItemCreate, user_email: str):
-    db = SessionLocal()
-    try:
-        user = db.query(models.User).filter(models.User.email == user_email).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Check if product exists
-        product = db.query(models.Product).filter(models.Product.id == cart_item.product_id).first()
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
-        
-        # Check if item already in cart
-        existing_item = db.query(models.CartItem).filter(
-            models.CartItem.user_id == user.id,
-            models.CartItem.product_id == cart_item.product_id
-        ).first()
-        
-        if existing_item:
-            existing_item.quantity += cart_item.quantity
-        else:
-            new_cart_item = models.CartItem(
-                user_id=user.id,
-                product_id=cart_item.product_id,
-                quantity=cart_item.quantity
-            )
-            db.add(new_cart_item)
-        
-        db.commit()
-        return {"message": "Product added to cart"}
-        
-    except Exception as e:
-        db.rollback()
-        raise e
-    finally:
-        db.close()
+cart_store = {}
 
-def get_cart(user_email: str):
-    db = SessionLocal()
-    try:
-        user = db.query(models.User).filter(models.User.email == user_email).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        cart_items = db.query(models.CartItem).filter(models.CartItem.user_id == user.id).all()
-        
-        total_amount = 0
-        items_with_details = []
-        for item in cart_items:
-            product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
-            if product:
-                item_total = product.price * item.quantity
-                total_amount += item_total
-                items_with_details.append({
-                    "id": item.id,
-                    "product_id": item.product_id,
-                    "quantity": item.quantity,
-                    "added_at": item.added_at,
-                    "product": product
-                })
-        
-        return {
-            "items": items_with_details,
-            "total_amount": total_amount
-        }
-        
-    finally:
-        db.close()
+def add_to_cart(cart_item: schemas.CartItemCreate):
+    email = "guest@example.com"
+    
+    # Всегда инициализируем пустую корзину если не существует
+    if email not in cart_store:
+        cart_store[email] = []
+    
+    # Если количество 0 - удаляем товар
+    if cart_item.quantity <= 0:
+        cart_store[email] = [item for item in cart_store[email] if item["product_id"] != cart_item.product_id]
+        return {"status": "success", "message": "Товар удален из корзины"}
+    
+    # Проверяем, есть ли уже такой товар в корзине
+    for item in cart_store[email]:
+        if item["product_id"] == cart_item.product_id:
+            item["quantity"] = cart_item.quantity  # Обновляем количество
+            item["updated_at"] = datetime.now()
+            break
+    else:
+        # Добавляем новый товар
+        cart_store[email].append({
+            "product_id": cart_item.product_id,
+            "quantity": cart_item.quantity,
+            "added_at": datetime.now()
+        })
+    
+    return {"status": "success", "message": "Корзина обновлена"}
+
+def get_cart():
+    email = "guest@example.com"
+    # Всегда возвращаем пустой массив
+    return cart_store.get(email, [])
+
+def get_cart():
+    email = "guest@example.com"
+    return cart_store.get(email, [])  # Всегда возвращаем пустой массив если корзины нет
+    
+    return {"status": "success", "message": "Корзина обновлена"}
+def get_cart(email: str = "guest@example.com"):
+    return cart_store.get(email, [])
 
 def create_order(order: schemas.OrderCreate, user_email: str):
     db = SessionLocal()

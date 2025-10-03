@@ -1,87 +1,137 @@
-import React, { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
-import './Cart.css'
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import './Cart.css';
 
 const Cart = () => {
-  const { t } = useTranslation()
-  const [cartItems, setCartItems] = useState([])
+  const { t, i18n } = useTranslation();
+  const [cartItems, setCartItems] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('cosmeticlab_cart')
-    if (savedCart) {
-      try {
-        const parsedCart = JSON.parse(savedCart)
-        setCartItems(Array.isArray(parsedCart) ? parsedCart : [])
-      } catch (error) {
-        console.error('Error parsing cart from localStorage:', error)
-        setCartItems([])
-      }
+    fetchCart();
+  }, []);
+
+  const fetchCart = async () => {
+    try {
+      setLoading(true);
+      // Получаем корзину
+      const cartResponse = await axios.get('http://localhost:8000/cart/');
+      const cartData = cartResponse.data;
+      
+      // Получаем все продукты для отображения информации
+      const productsResponse = await axios.get('http://localhost:8000/products/');
+      setProducts(productsResponse.data);
+      
+      // Сопоставляем товары в корзине с информацией о продуктах
+      const itemsWithDetails = cartData.map(cartItem => {
+        const product = productsResponse.data.find(p => p.id === cartItem.product_id);
+        return {
+          ...cartItem,
+          product: product
+        };
+      });
+      
+      setCartItems(itemsWithDetails);
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+      // Для теста - демо данные
+      setCartItems([
+        {
+          product_id: 1,
+          quantity: 2,
+          product: {
+            id: 1,
+            name_uk: "Ретінол Complex 1%",
+            name_ru: "Ретинол Complex 1%",
+            price: 1800,
+            volume: "30 мл"
+          }
+        },
+        {
+          product_id: 2,
+          quantity: 1,
+          product: {
+            id: 2,
+            name_uk: "Гіалуронова Кислота",
+            name_ru: "Гиалуроновая Кислота",
+            price: 1500,
+            volume: "50 мл"
+          }
+        }
+      ]);
+    } finally {
+      setLoading(false);
     }
-  }, [])
+  };
 
-  useEffect(() => {
-    localStorage.setItem('cosmeticlab_cart', JSON.stringify(cartItems))
-  }, [cartItems])
-
-  const getName = (item) => {
-    const language = localStorage.getItem('i18nextLng') || 'uk'
-    return language === 'uk' ? item.name_uk : item.name_ru
-  }
-
-  const updateQuantity = (id, newQuantity) => {
-    if (newQuantity < 1) {
-      removeItem(id)
-      return
+  const updateQuantity = async (productId, newQuantity) => {
+    if (newQuantity < 1) return;
+    
+    try {
+      // Временное решение - переотправляем товар с новым количеством
+      await axios.post('http://localhost:8000/cart/add/', {
+        product_id: productId,
+        quantity: newQuantity
+      });
+      
+      // Обновляем локальное состояние
+      setCartItems(prev => prev.map(item => 
+        item.product_id === productId 
+          ? { ...item, quantity: newQuantity }
+          : item
+      ));
+    } catch (error) {
+      console.error('Error updating quantity:', error);
     }
-    setCartItems(cartItems.map(item => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ))
-  }
+  };
 
-  const removeItem = (id) => {
-    setCartItems(cartItems.filter(item => item.id !== id))
-  }
-
-  const getSubtotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0)
-  }
-
-  const getTotal = () => {
-    const subtotal = getSubtotal()
-    const delivery = subtotal > 0 ? 150 : 0
-    return subtotal + delivery
-  }
-
-  const proceedToCheckout = () => {
-    if (cartItems.length === 0) {
-      alert('Кошик порожній!')
-      return
+  const removeFromCart = async (productId) => {
+    try {
+      // Временное решение - устанавливаем количество 0
+      await axios.post('http://localhost:8000/cart/add/', {
+        product_id: productId,
+        quantity: 0
+      });
+      
+      // Удаляем из локального состояния
+      setCartItems(prev => prev.filter(item => item.product_id !== productId));
+    } catch (error) {
+      console.error('Error removing from cart:', error);
     }
-    alert('Переходимо до оформлення замовлення...')
-  }
+  };
 
-  const continueShopping = () => {
-    window.history.back()
-  }
+  const getProductName = (product) => {
+    return i18n.language === 'uk' ? product.name_uk : product.name_ru;
+  };
 
-  const clearCart = () => {
-    setCartItems([])
+  const calculateTotal = () => {
+    return cartItems.reduce((total, item) => {
+      return total + (item.product?.price || 0) * item.quantity;
+    }, 0);
+  };
+
+  const getTotalItems = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  if (loading) {
+    return (
+      <div className="cart-loading">
+        <div className="loading-icon">🛒</div>
+        <h2>Завантаження корзини...</h2>
+      </div>
+    );
   }
 
   return (
-    <div className="main-content">
-      {/* Hero Section */}
+    <div className="cart-page">
       <section className="cart-hero">
         <div className="container">
-          <div>
-            <h1>🛒 Кошик</h1>
-            <p>
-              {cartItems.length > 0 
-                ? `У вашому кошику ${cartItems.length} товар(ів)` 
-                : 'Ваш кошик порожній'
-              }
-            </p>
+          <div className="hero-content">
+            <h1>{t('cart')}</h1>
+            <p>Ваші обрані препарати</p>
           </div>
         </div>
       </section>
@@ -89,161 +139,109 @@ const Cart = () => {
       <section className="cart-content">
         <div className="container">
           {cartItems.length === 0 ? (
-            // Пустая корзина
-            <div className="empty-cart">
-              <div className="empty-cart-icon">🛒</div>
-              <h2>Кошик порожній</h2>
-              <p>Додайте товари до кошика, щоб зробити замовлення</p>
-              <Link to="/products" className="btn btn-primary">
-                🧪 Перейти до препаратів
-              </Link>
+            <div className="cart-empty">
+              <div className="empty-icon">🛒</div>
+              <h3>Корзина порожня</h3>
+              <p>Додайте препарати з каталогу, щоб зробити замовлення</p>
+              <a href="/products" className="btn btn-primary">
+                Перейти до каталогу
+              </a>
             </div>
           ) : (
-            // Корзина с товарами
-            <div className="cart-grid">
-              {/* Список товаров */}
-              <div>
-                <div className="cart-items">
-                  <h2>Товари в кошику ({cartItems.length})</h2>
-                  
-                  <div>
-                    {cartItems.map(item => (
-                      <div key={item.id} className="cart-item">
-                        {/* Изображение товара */}
-                        <div className="cart-item-image">
-                          {item.image || '⚗️'}
-                        </div>
-
-                        {/* Информация о товаре */}
-                        <div className="cart-item-info">
-                          <h3 className="cart-item-name">
-                            {getName(item)}
-                          </h3>
-                          <p className="cart-item-volume">
-                            Об'єм: {item.volume}
-                          </p>
-                          <div className="cart-item-controls">
-                            <div className="cart-item-price">
-                              {item.price} ₴
-                            </div>
-                            
-                            {/* Управление количеством */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                              <div className="quantity-controls">
-                                <button 
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  className="quantity-btn"
-                                >
-                                  -
-                                </button>
-                                <span className="quantity-display">
-                                  {item.quantity}
-                                </span>
-                                <button 
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  className="quantity-btn"
-                                >
-                                  +
-                                </button>
-                              </div>
-                              
-                              {/* Кнопка удаления */}
-                              <button 
-                                onClick={() => removeItem(item.id)}
-                                className="remove-btn"
-                              >
-                                Видалити
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+            <div className="cart-layout">
+              <div className="cart-items">
+                <div className="cart-header">
+                  <h2>Товари в корзині ({getTotalItems()})</h2>
+                </div>
+                
+                {cartItems.map(item => (
+                  <div key={item.product_id} className="cart-item">
+                    <div className="item-image">
+                      ⚗️
+                    </div>
+                    
+                    <div className="item-details">
+                      <h3 className="item-title">
+                        {item.product ? getProductName(item.product) : `Товар #${item.product_id}`}
+                      </h3>
+                      <div className="item-volume">
+                        {item.product?.volume}
                       </div>
-                    ))}
+                      <div className="item-price">
+                        {item.product?.price} ₴
+                      </div>
+                    </div>
+                    
+                    <div className="item-controls">
+                      <div className="quantity-controls">
+                        <button 
+                          onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                          className="quantity-btn"
+                        >
+                          -
+                        </button>
+                        <span className="quantity">{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                          className="quantity-btn"
+                        >
+                          +
+                        </button>
+                      </div>
+                      
+                      <div className="item-total">
+                        {(item.product?.price || 0) * item.quantity} ₴
+                      </div>
+                      
+                      <button 
+                        onClick={() => removeFromCart(item.product_id)}
+                        className="remove-btn"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                {/* Кнопка продолжить покупки */}
-                <button 
-                  onClick={continueShopping}
-                  className="btn continue-shopping-btn"
-                >
-                  ← Продовжити покупки
-                </button>
+                ))}
               </div>
-
-              {/* Боковая панель заказа */}
-              <div className="order-summary">
-                <h2>Оформлення замовлення</h2>
-
-                <div>
+              
+              <div className="cart-summary">
+                <div className="summary-card">
+                  <h3>Разом</h3>
+                  
                   <div className="summary-row">
-                    <span>Проміжний підсумок:</span>
-                    <span style={{ fontWeight: '600' }}>{getSubtotal()} ₴</span>
+                    <span>Товари ({getTotalItems()})</span>
+                    <span>{calculateTotal()} ₴</span>
                   </div>
                   
                   <div className="summary-row">
-                    <span>Доставка:</span>
-                    <span style={{ fontWeight: '600' }}>{getSubtotal() > 0 ? '150 ₴' : '0 ₴'}</span>
+                    <span>Доставка</span>
+                    <span className="free-shipping">Безкоштовно</span>
                   </div>
-
-                  <div style={{ 
-                    height: '1px', 
-                    background: 'var(--border)', 
-                    margin: '20px 0' 
-                  }}></div>
-
+                  
+                  <div className="summary-divider"></div>
+                  
                   <div className="summary-total">
-                    <span>Загалом:</span>
-                    <span className="summary-total-amount">{getTotal()} ₴</span>
+                    <span>До сплати:</span>
+                    <span className="total-amount">{calculateTotal()} ₴</span>
+                  </div>
+                  
+                  <button className="checkout-btn btn-primary">
+                    Оформити замовлення
+                  </button>
+                  
+                  <div className="shipping-info">
+                    <p>🚚 Безкоштовна доставка по Україні</p>
+                    <p>⏰ Термін виготовлення: 1-3 дні</p>
                   </div>
                 </div>
-
-                <button 
-                  onClick={proceedToCheckout}
-                  className="btn btn-primary checkout-btn"
-                >
-                  🚀 Перейти до оплати
-                </button>
-
-                <p className="order-features">
-                  ⚡ Швидка доставка по всій Україні<br />
-                  🔒 Безпечна оплата онлайн<br />
-                  📞 Підтримка 24/7
-                </p>
               </div>
             </div>
           )}
         </div>
       </section>
-
-      {/* CTA Section */}
-      {cartItems.length > 0 && (
-        <section className="cta-section">
-          <div className="container">
-            <div className="cta-content">
-              <h2>Потрібна допомога з вибором?</h2>
-              <p>
-                Наші косметологи допоможуть підібрати оптимальні препарати 
-                для ваших потреб та відповість на всі запитання
-              </p>
-              <div className="cta-buttons">
-                <a href="tel:+380671234567" className="btn btn-primary">
-                  📞 Зателефонувати
-                </a>
-                <a href="mailto:info@cosmeticlab.ua" className="btn" style={{
-                  background: 'transparent',
-                  color: 'var(--primary)',
-                  border: '2px solid var(--primary)'
-                }}>
-                  ✉️ Написати
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
     </div>
-  )
-}
+  );
+};
 
-export default Cart
+export default Cart;

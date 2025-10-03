@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
@@ -138,3 +139,7 @@ def get_current_user(token: str = Depends(verify_token), db: Session = Depends(g
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+def check_admin(user_email: str):
+    admin_email = os.getenv('ADMIN_EMAIL')
+    return user_email == admin_email
